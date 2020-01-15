@@ -1,45 +1,109 @@
 open Core
-open Lexer
-open Lexing
-open Term
 
-let print_position outx lexbuf =
-  let pos = lexbuf.lex_curr_p in
-  Printf.fprintf outx "%s:%d:%d" pos.pos_fname pos.pos_lnum
-    (pos.pos_cnum - pos.pos_bol + 1)
+module type Evaluator = sig
+  type t
 
-let parse_with_error lexbuf =
-  try Parser.prog Lexer.read lexbuf with
-  | SyntaxError msg ->
-      Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
-      exit (-1)
-  | Parser.Error ->
-      Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
-      exit (-1)
+  val eval : t -> t
+end
 
-let rec string_of_term = function
-  | TmTrue -> "true"
-  | TmFalse -> "false"
-  | TmZero -> "0"
-  | TmSucc s -> "succ " ^ string_of_term s
-  | TmPred s -> "pred " ^ string_of_term s
-  | TmIsZero s -> "iszero " ^ string_of_term s
-  | TmIf (i, t, e) ->
-      "if " ^ string_of_term i ^ " then " ^ string_of_term t ^ " else "
-      ^ string_of_term e
+module SmallStep : Evaluator with type t = Term.term = struct
+  open Term
 
-let string_of_command = function Eval t -> string_of_term t ^ ";\n"
+  type t = Term.term
 
-let loop filename () =
-  let inx = In_channel.create filename in
-  let lexbuf = Lexing.from_channel inx in
-  lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-  let program = parse_with_error lexbuf in
-  List.iter program ~f:(fun c -> string_of_command c |> Printf.printf "%s");
-  In_channel.close inx
+  let rec is_numeric = function
+    | TmZero -> true
+    | TmSucc t -> is_numeric t
+    | TmPred t -> is_numeric t
+    | _ -> false
 
-let () =
-  Command.basic_spec ~summary:"Parse and display Arith"
-    Command.Spec.(empty +> anon ("filename" %: string))
-    loop
-  |> Command.run
+  exception NoRuleApplies
+
+  let rec eval t =
+    let rec eval' = function
+      | TmIf (TmTrue, t, _) -> t
+      | TmIf (TmFalse, _, e) -> e
+      | TmIf (i, t, e) -> TmIf (eval' i, t, e)
+      | TmSucc s -> TmSucc (eval' s)
+      | TmPred TmZero -> TmZero
+      | TmPred (TmSucc s) when is_numeric s -> s
+      | TmPred t -> TmPred (eval' t)
+      | TmIsZero TmZero -> TmTrue
+      | TmIsZero (TmSucc s) when is_numeric s -> TmFalse
+      | TmIsZero z -> TmIsZero (eval' z)
+      | _ -> raise NoRuleApplies
+    in
+    try
+      let t' = eval' t in
+      eval t'
+    with NoRuleApplies -> t
+end
+
+module type Interpreter = sig
+  val parse : string -> Term.command list
+
+  val print_source : Term.command list -> unit
+
+  val interpret : Term.command list -> Term.command list
+end
+
+module MakeInterpreter (E : Evaluator with type t = Term.term) : Interpreter =
+struct
+  open Lexer
+  open Lexing
+
+  let print_position outx lexbuf =
+    let pos = lexbuf.lex_curr_p in
+    Printf.fprintf outx "%s:%d:%d" pos.pos_fname pos.pos_lnum
+      (pos.pos_cnum - pos.pos_bol + 1)
+
+  let parse_with_error lexbuf =
+    try Parser.prog Lexer.read lexbuf with
+    | SyntaxError msg ->
+        Printf.fprintf stderr "%a: %s\n" print_position lexbuf msg;
+        exit (-1)
+    | Parser.Error ->
+        Printf.fprintf stderr "%a: syntax error\n" print_position lexbuf;
+        exit (-1)
+
+  let parse filename =
+    let inx = In_channel.create filename in
+    let lexbuf = Lexing.from_channel inx in
+    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
+    let program = parse_with_error lexbuf in
+    In_channel.close inx;
+    program
+
+  let print_source prog =
+    List.iter prog ~f:(fun c -> Term.string_of_command c |> Printf.printf "%s")
+
+  let interpret prog =
+    let interpret_command = function Term.Eval t -> Term.Eval (E.eval t) in
+    List.map prog ~f:interpret_command
+end
+
+exception InvalidEvaluator
+
+let make_interpreter s =
+  match s with
+  | "small" -> (module MakeInterpreter (SmallStep) : Interpreter)
+  | _ -> raise InvalidEvaluator
+
+let command =
+  Command.basic ~summary:"Run and print Arith files."
+    ~readme:(fun () -> "More detailed information")
+    Command.Let_syntax.(
+      let%map_open filename = anon ("filename" %: Filename.arg_type)
+      and evaluator =
+        flag "-e"
+          (optional_with_default "small" string)
+          ~doc:"string  The evaluator to use."
+      and print = flag "-p" no_arg ~doc:" Print the source code." in
+      fun () ->
+        Printf.printf "%s\n" evaluator;
+        let module I = (val make_interpreter filename) in
+        let prog = I.parse filename in
+        if print then I.print_source prog;
+        I.interpret prog |> I.print_source)
+
+let () = Command.run ~version:"1.0" command
