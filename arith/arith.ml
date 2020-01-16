@@ -39,6 +39,33 @@ module SmallStep : Evaluator with type t = Term.term = struct
     with NoRuleApplies -> t
 end
 
+module BigStep : Evaluator with type t = Term.term = struct
+  open Term
+
+  type t = Term.term
+
+  let rec is_numeric = function
+    | TmZero -> true
+    | TmSucc t -> is_numeric t
+    | TmPred t -> is_numeric t
+    | _ -> false
+
+  let rec eval = function
+    | TmIf (TmTrue, t, _) -> eval t
+    | TmIf (TmFalse, _, e) -> eval e
+    | TmIf (i, t, e) -> TmIf (eval i, t, e) |> eval
+    | TmSucc s -> TmSucc (eval s)
+    | TmPred TmZero -> TmZero
+    | TmPred (TmSucc s) when is_numeric s -> eval s
+    | TmPred t -> TmPred (eval t)
+    | TmIsZero TmZero -> TmTrue
+    | TmIsZero (TmSucc s) when is_numeric s -> TmFalse
+    | TmIsZero z -> TmIsZero (eval z) |> eval
+    | TmZero -> TmZero
+    | TmFalse -> TmFalse
+    | TmTrue -> TmTrue
+end
+
 module type Interpreter = sig
   val parse : string -> Term.command list
 
@@ -84,11 +111,6 @@ end
 
 exception InvalidEvaluator
 
-let make_interpreter s =
-  match s with
-  | "small" -> (module MakeInterpreter (SmallStep) : Interpreter)
-  | _ -> raise InvalidEvaluator
-
 let command =
   Command.basic ~summary:"Run and print Arith files."
     ~readme:(fun () -> "More detailed information")
@@ -100,8 +122,13 @@ let command =
           ~doc:"string  The evaluator to use."
       and print = flag "-p" no_arg ~doc:" Print the source code." in
       fun () ->
-        Printf.printf "%s\n" evaluator;
-        let module I = (val make_interpreter filename) in
+        let m =
+          match evaluator with
+          | "small" -> (module MakeInterpreter (SmallStep) : Interpreter)
+          | "big" -> (module MakeInterpreter (BigStep) : Interpreter)
+          | _ -> raise InvalidEvaluator
+        in
+        let module I = (val m) in
         let prog = I.parse filename in
         if print then I.print_source prog;
         I.interpret prog |> I.print_source)
