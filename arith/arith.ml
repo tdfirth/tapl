@@ -11,12 +11,6 @@ module SmallStep : Evaluator with type t = Term.term = struct
 
   type t = Term.term
 
-  let rec is_numeric = function
-    | TmZero -> true
-    | TmSucc t -> is_numeric t
-    | TmPred t -> is_numeric t
-    | _ -> false
-
   exception NoRuleApplies
 
   let rec eval t =
@@ -43,12 +37,6 @@ module BigStep : Evaluator with type t = Term.term = struct
   open Term
 
   type t = Term.term
-
-  let rec is_numeric = function
-    | TmZero -> true
-    | TmSucc t -> is_numeric t
-    | TmPred t -> is_numeric t
-    | _ -> false
 
   let rec eval = function
     | TmIf (TmTrue, t, _) -> eval t

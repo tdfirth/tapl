@@ -9,6 +9,12 @@ type term =
 
 type command = Eval of term
 
+let rec is_numeric = function
+  | TmZero -> true
+  | TmSucc t -> is_numeric t
+  | TmPred t -> is_numeric t
+  | _ -> false
+
 let rec string_of_term = function
   | TmTrue -> "true"
   | TmFalse -> "false"
