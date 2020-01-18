@@ -7,8 +7,6 @@ type term =
   | TmPred of term
   | TmIsZero of term
 
-type command = Eval of term
-
 let rec is_numeric = function
   | TmZero -> true
   | TmSucc t -> is_numeric t
@@ -25,5 +23,3 @@ let rec string_of_term = function
   | TmIf (i, t, e) ->
       "if " ^ string_of_term i ^ " then " ^ string_of_term t ^ " else "
       ^ string_of_term e
-
-let string_of_command = function Eval t -> string_of_term t ^ ";\n"

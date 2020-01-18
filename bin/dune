@@ -1,0 +1,4 @@
+(executable
+  (name tapl)
+  (libraries core meta arith)
+  (preprocess (pps ppx_jane)))

@@ -1,7 +1,9 @@
 (menhir
   (modules parser))
+
 (ocamllex lexer)
-(executable
+
+(library
   (name arith)
-  (libraries core)
+  (libraries core meta)
   (preprocess (pps ppx_jane)))

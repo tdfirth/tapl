@@ -1,0 +1,11 @@
+opam-version: "2.0"
+version: "1.0"
+authors: ["Tom Firth"]
+homepage: "https://github.com/tdfirth/tapl"
+bug-reports: "https://github.com/tdfirth/tapl/issues"
+dev-repo: "git+https://github.com/tdfirth/tapl.git"
+license: "Apache-2.0"
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+]
+

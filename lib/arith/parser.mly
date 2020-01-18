@@ -16,14 +16,11 @@ open Term
 %token SEMI
 %token EOF
 
-%start <Term.command list> prog
+%start <Term.term list> prog
 %%
 prog:
-  | c = command; SEMI; cs = prog { c::cs }
+  | t = term; SEMI; ts = prog { t::ts }
   | EOF { [] }
-
-command:
-  | t = term { Eval(t) }
 
 term:
   | SUCC; t = term { TmSucc(t) }
