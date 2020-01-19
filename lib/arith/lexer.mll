@@ -32,5 +32,5 @@ rule read =
   | "pred"   { PRED }
   | eof      { EOF }
   | white    { read lexbuf }
-  | newline  { new_line lexbuf; read lexbuf }
+  | newline  { next_line lexbuf; read lexbuf }
   | _        { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

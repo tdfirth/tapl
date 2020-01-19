@@ -1,0 +1,10 @@
+/* Examples for testing */
+
+true;
+if false then true else false; 
+
+x/;
+x;
+
+lambda x. x;
+(lambda x. x) (lambda x. x x); 
