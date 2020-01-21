@@ -23,6 +23,9 @@ let command =
               Printf.printf "Using the BigStep Evaluator:\n";
               ( module Meta.MakeInterpreter (Arith.MakeArith (Arith.BigStep))
               : Meta.Interpreter )
+          | "untyped" ->
+              Printf.printf "Using the Untyped Language:\n";
+              (module Meta.MakeInterpreter (Untyped.Untyped) : Meta.Interpreter)
           | _ -> raise InvalidEvaluator
         in
         let module I = (val m) in

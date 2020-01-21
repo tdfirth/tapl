@@ -19,13 +19,13 @@ let symbol = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
 
 rule read =
   parse
-  | '('     { LPAREN }
-  | ')'     { RPAREN }
-  | ';'     { SEMI }
-  | '.'     { DOT }
-  | "lamba" { LAMBDA }
-  | symbol  { SYMBOL (Lexing.lexeme lexbuf) }
-  | eof     { EOF }
-  | white   { read lexbuf }
-  | newline { next_line lexbuf; read lexbuf }
-  | _       { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+  | '('      { LPAREN }
+  | ')'      { RPAREN }
+  | ';'      { SEMI }
+  | '.'      { DOT }
+  | "lambda" { LAMBDA }
+  | symbol   { SYMBOL (Lexing.lexeme lexbuf) }
+  | eof      { EOF }
+  | white    { read lexbuf }
+  | newline  { next_line lexbuf; read lexbuf }
+  | _        { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

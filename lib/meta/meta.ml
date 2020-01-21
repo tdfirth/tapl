@@ -37,13 +37,27 @@ module MakeInterpreter (L : Language) : Interpreter = struct
 
   type program = L.term L.program
 
+  let print_position outx lexbuf =
+    let pos = lexbuf.lex_curr_p in
+    fprintf outx "%s:%d:%d" pos.pos_fname pos.pos_lnum
+      (pos.pos_cnum - pos.pos_bol + 1)
+
+  let print_lexeme outx lexbuf =
+    let lexeme = Lexing.lexeme lexbuf in
+    fprintf outx "%s" lexeme
+
   let parse_file filename =
     let inx = In_channel.create filename in
     let lexbuf = Lexing.from_channel inx in
     lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
-    let program = L.parse lexbuf in
-    In_channel.close inx;
-    program
+    try
+      let program = L.parse lexbuf in
+      In_channel.close inx;
+      program
+    with _ ->
+      fprintf stderr "%a Error encountered\n" print_position lexbuf;
+      fprintf stderr "%a Error encountered\n" print_lexeme lexbuf;
+      exit 1
 
   let eval_program program = L.map ~f:L.eval program
 
