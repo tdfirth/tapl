@@ -27,9 +27,11 @@ end
 module type Interpreter = sig
   type program
 
-  val interpret : string -> program
+  val read : string -> origin:string -> program
 
-  val print_program : program -> unit
+  val eval : program -> program
+
+  val print : program -> unit
 end
 
 module MakeInterpreter (L : Language) : Interpreter

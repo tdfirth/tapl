@@ -27,9 +27,11 @@ end
 module type Interpreter = sig
   type program
 
-  val interpret : string -> program
+  val read : string -> origin:string -> program
 
-  val print_program : program -> unit
+  val eval : program -> program
+
+  val print : program -> unit
 end
 
 module MakeInterpreter (L : Language) : Interpreter = struct
@@ -46,25 +48,19 @@ module MakeInterpreter (L : Language) : Interpreter = struct
     let lexeme = Lexing.lexeme lexbuf in
     fprintf outx "%s" lexeme
 
-  let parse_file filename =
-    let inx = In_channel.create filename in
-    let lexbuf = Lexing.from_channel inx in
-    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = filename };
+  let read source ~origin =
+    let lexbuf = Lexing.from_string source in
+    lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = origin };
     try
       let program = L.parse lexbuf in
-      In_channel.close inx;
       program
     with _ ->
       fprintf stderr "%a Error encountered\n" print_position lexbuf;
       fprintf stderr "%a Error encountered\n" print_lexeme lexbuf;
       exit 1
 
-  let eval_program program = L.map ~f:L.eval program
+  let eval program = L.map ~f:L.eval program
 
-  let print_program program =
+  let print program =
     L.iter ~f:(fun t -> L.string_of_term t |> Printf.printf "%s\n") program
-
-  let interpret filename =
-    let program = parse_file filename in
-    eval_program program
 end
