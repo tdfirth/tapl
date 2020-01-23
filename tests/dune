@@ -1,0 +1,5 @@
+(library
+  (name tapl_tests)
+  (inline_tests)
+  (libraries arith untyped)
+  (preprocess (pps ppx_jane)))

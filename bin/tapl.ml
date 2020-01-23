@@ -23,6 +23,20 @@ let repl (module I : Meta.Interpreter) =
   in
   loop ()
 
+let make_lang_table =
+  let table = Hashtbl.create (module String) in
+  Hashtbl.add_exn table ~key:"small"
+    ~data:
+      ( module Meta.MakeInterpreter (Arith.MakeArith (Arith.SmallStep))
+      : Meta.Interpreter );
+  Hashtbl.add_exn table ~key:"big"
+    ~data:
+      ( module Meta.MakeInterpreter (Arith.MakeArith (Arith.BigStep))
+      : Meta.Interpreter );
+  Hashtbl.add_exn table ~key:"untyped"
+    ~data:(module Meta.MakeInterpreter (Untyped.Untyped) : Meta.Interpreter);
+  table
+
 let command =
   Command.basic ~summary:"Run and print Arith files."
     ~readme:(fun () -> "More detailed information")
@@ -34,21 +48,8 @@ let command =
           ~doc:"string  The evaluator to use."
       in
       fun () ->
-        let m =
-          match evaluator with
-          | "small" ->
-              Printf.printf "Using the SmallStep Evaluator:\n";
-              ( module Meta.MakeInterpreter (Arith.MakeArith (Arith.SmallStep))
-              : Meta.Interpreter )
-          | "big" ->
-              Printf.printf "Using the BigStep Evaluator:\n";
-              ( module Meta.MakeInterpreter (Arith.MakeArith (Arith.BigStep))
-              : Meta.Interpreter )
-          | "untyped" ->
-              Printf.printf "Using the Untyped Language:\n";
-              (module Meta.MakeInterpreter (Untyped.Untyped) : Meta.Interpreter)
-          | _ -> raise InvalidEvaluator
-        in
+        let table = make_lang_table in
+        let m = Hashtbl.find_exn table evaluator in
         match filename with
         | Some file -> interpret_file m file
         | None -> repl m)
