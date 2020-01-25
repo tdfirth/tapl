@@ -9,7 +9,11 @@ module type Env = sig
 
   type +'a tree
 
+  val empty : unit -> 'a tree
+
   val insert : 'a tree -> key -> 'a -> 'a tree
+
+  val get : 'a tree -> key -> 'a option
 end
 
 module MakeEnv (K : Key) : Env with type key = K.t = struct
@@ -21,6 +25,8 @@ module MakeEnv (K : Key) : Env with type key = K.t = struct
 
   let make_node k v left right = Node { k; v; left; right }
 
+  let empty () = Empty
+
   let rec insert tree key value =
     match tree with
     | Empty -> make_node key value Empty Empty
@@ -29,4 +35,16 @@ module MakeEnv (K : Key) : Env with type key = K.t = struct
         | -1 -> make_node k v (insert left key value) right
         | 1 -> make_node k v left (insert right key value)
         | _ -> make_node k value left right )
+
+  exception Blah
+
+  let rec get tree key =
+    match tree with
+    | Empty -> None
+    | Node { k; v; left; right } -> (
+        match K.compare key k with
+        | 0 -> Some v
+        | -1 -> get left key
+        | 1 -> get right key
+        | _ -> raise Blah )
 end

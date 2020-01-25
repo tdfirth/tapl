@@ -1,3 +1,4 @@
+include Env
 open Lexing
 
 module type Evaluator = sig

@@ -1,5 +1,7 @@
 open Lexing
 
+include module type of Env
+
 module type Evaluator = sig
   type term
 
