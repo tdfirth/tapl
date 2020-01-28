@@ -14,6 +14,10 @@ module type Env = sig
   val insert : 'a tree -> key -> 'a -> 'a tree
 
   val get : 'a tree -> key -> 'a option
+
+  val count : 'a tree -> int
+
+  val depth : 'a tree -> int
 end
 
 module MakeEnv (K : Key) : Env with type key = K.t
